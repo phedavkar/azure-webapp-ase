@@ -5,7 +5,16 @@ Enterprise Hub-Spoke Azure Architecture Diagram
 Topology: Hub-Spoke with ExpressRoute to On-Premises
 App: plte-fie-test2 (Java 17 / Tomcat 10.1) in ASEv3 (ILB)
 Auth: Azure Entra ID + ESF (Enterprise Security Framework)
+Secrets: Azure Key Vault (current) | HashiCorp Vault (future/strategic)
+DNS: Private DNS Zone in Hub subscription (shared - app teams register records)
 Monitoring: App Insights (Spoke) → AMPLS → LAW (Hub)
+
+Key architecture decisions reflected:
+- ASE is ILB mode → web app needs NO private endpoint
+- Private DNS Zone lives in Hub (shared services) — spoke has no DNS forwarders
+- App teams register A records in shared DNS zone for their web app / ASE
+- Azure Key Vault = current solution (accessed via Managed Identity)
+- HashiCorp Vault = future strategic replacement (shown with dashed border)
 """
 
 import os
@@ -14,12 +23,10 @@ from diagrams import Diagram, Cluster, Edge
 from diagrams.azure.compute import AppServices
 from diagrams.azure.network import (
     VirtualNetworks,
-    Subnets,
     VirtualNetworkGateways,
     ExpressrouteCircuits,
     DNSPrivateZones,
     NetworkSecurityGroupsClassic,
-    PrivateEndpoint
 )
 from diagrams.azure.security import KeyVaults
 from diagrams.azure.identity import (
@@ -30,8 +37,8 @@ from diagrams.azure.identity import (
 from diagrams.azure.analytics import LogAnalyticsWorkspaces, PrivateLinkServices
 from diagrams.azure.devops import ApplicationInsights
 from diagrams.azure.general import Resourcegroups
-from diagrams.onprem.database import Oracle
 from diagrams.onprem.network import Internet
+from diagrams.onprem.security import Vault
 from diagrams.generic.device import Mobile
 from diagrams.generic.blank import Blank
 
@@ -117,6 +124,24 @@ spoke_security_attr = {
     "penwidth": "2"
 }
 
+vault_future_attr = {
+    "fontsize": "12",
+    "bgcolor": "#FAFAFA",   # Near white — "not yet active"
+    "style": "dashed",
+    "margin": "15",
+    "pencolor": "#757575",
+    "penwidth": "2"
+}
+
+hub_dns_attr = {
+    "fontsize": "12",
+    "bgcolor": "#E8EAF6",   # Indigo light
+    "style": "rounded",
+    "margin": "15",
+    "pencolor": "#3949AB",
+    "penwidth": "2"
+}
+
 onprem_attr = {
     "fontsize": "13",
     "bgcolor": "#E8F5E9",   # Green light
@@ -144,7 +169,7 @@ os.makedirs("Arch_Diagrams/diagrams", exist_ok=True)
 # DIAGRAM
 # ============================================================================
 with Diagram(
-    "ph-dev Enterprise Architecture\n(Hub-Spoke | ILB ASE | Entra ID | ESF)",
+    "ph-dev Enterprise Architecture\n(Hub-Spoke | ILB ASE | Entra ID | ESF | HashiCorp Vault Future)",
     filename="Arch_Diagrams/diagrams/ph_dev_architecture",
     direction="LR",
     graph_attr=graph_attr,
@@ -167,21 +192,36 @@ with Diagram(
     # ========================================================================
     # HUB SUBSCRIPTION (Shared Services)
     # ========================================================================
-    with Cluster("Hub Subscription (Shared Services)", graph_attr=hub_vnet_attr):
+    with Cluster("Hub Subscription — Shared Services", graph_attr=hub_vnet_attr):
 
         # ExpressRoute
         expressroute = ExpressrouteCircuits("ExpressRoute\nCircuit")
         er_gateway = VirtualNetworkGateways("ExpressRoute\nGateway")
 
+        # Private DNS Zone — SHARED, lives in Hub
+        with Cluster(
+            "Private DNS Zone (Shared)\nprivatelink.azurewebsites.net\n"
+            "Policy: App teams register records here\n(No DNS forwarders in spoke)",
+            graph_attr=hub_dns_attr
+        ):
+            private_dns = DNSPrivateZones(
+                "ase-plte-fie\n.appserviceenvironment.net\n"
+                "plte-fie-test2 A record\n→ ILB IP"
+            )
+
         # Hub Monitoring
         with Cluster("Monitoring (Shared)", graph_attr=hub_monitoring_attr):
-            law = LogAnalyticsWorkspaces("Log Analytics\nlaw-shared-enterprise\n(Enterprise-wide)")
-            ampls = PrivateLinkServices("AMPLS\nampls-shared-hub\n(Azure Monitor\nPrivate Link Scope)")
+            law = LogAnalyticsWorkspaces(
+                "Log Analytics\nlaw-shared-enterprise\n(Enterprise-wide)"
+            )
+            ampls = PrivateLinkServices(
+                "AMPLS\nampls-shared-hub\n(Azure Monitor\nPrivate Link Scope)"
+            )
 
     # ========================================================================
     # SPOKE SUBSCRIPTION (Application)
     # ========================================================================
-    with Cluster("Spoke Subscription (Application)", graph_attr=spoke_vnet_attr):
+    with Cluster("Spoke Subscription — Application Team", graph_attr=spoke_vnet_attr):
 
         # VNet label
         vnet = VirtualNetworks("vnet-app-spoke\n10.3.0.0/24")
@@ -192,39 +232,62 @@ with Diagram(
         # ----------------------------------------------------------------
         # ASE Subnet + App Service Environment
         # ----------------------------------------------------------------
-        with Cluster("ASE Subnet: snet-ase (10.3.0.0/26)", graph_attr=ase_subnet_attr):
-            with Cluster("App Service Env: ase-plte-fie\n[ ILBASEv3 | NO PUBLIC ACCESS ]", graph_attr=ase_attr):
-                web_app = AppServices("Web App\nplte-fie-test2\nJava 17 / Tomcat 10.1")
+        with Cluster("snet-ase  (10.3.0.0/26)", graph_attr=ase_subnet_attr):
+            with Cluster(
+                "App Service Env: ase-plte-fie\n[ ILBASEv3 | NO PUBLIC ACCESS ]\n"
+                "No private endpoint needed — ILB provides private access",
+                graph_attr=ase_attr
+            ):
+                web_app = AppServices(
+                    "Web App\nplte-fie-test2\nJava 17 / Tomcat 10.1"
+                )
                 managed_id = ManagedIdentities("Managed Identity\n(System-assigned)")
 
         # ----------------------------------------------------------------
-        # Private Endpoint Subnet
+        # Private Endpoint Subnet — Reserved
         # ----------------------------------------------------------------
-        with Cluster("PE Subnet: snet-pe (10.3.1.0/26)", graph_attr=pe_subnet_attr):
-            pe_kv = PrivateEndpoint("PE: Key Vault")
-            pe_appcfg = PrivateEndpoint("PE: App Config")
+        with Cluster("snet-pe  (10.3.1.0/26)\nReserved for Future Private Endpoints",
+                     graph_attr=pe_subnet_attr):
+            pe_reserved = Blank("(Reserved)")
 
         # ----------------------------------------------------------------
-        # Security & Config
+        # Security & Config — Current (Azure Key Vault)
         # ----------------------------------------------------------------
-        with Cluster("Security & Config (Spoke)", graph_attr=spoke_security_attr):
-            key_vault = KeyVaults("Key Vault\nkv-app-spoke\n(Secrets, Certs, API Keys)")
-            app_config = Blank("App Configuration\nappconf-app-spoke\n(Env Vars, Feature Flags)")
+        with Cluster("Security & Config (Current)", graph_attr=spoke_security_attr):
+            key_vault = KeyVaults(
+                "Azure Key Vault\nkv-app-spoke\n[CURRENT]\n(Secrets, Certs, API Keys)"
+            )
+            app_config = Blank(
+                "App Configuration\nappconf-app-spoke\n(Env Vars, Feature Flags)"
+            )
+
+        # ----------------------------------------------------------------
+        # HashiCorp Vault — Future / Strategic
+        # ----------------------------------------------------------------
+        with Cluster(
+            "HashiCorp Vault  [FUTURE — Strategic]\n"
+            "Central secrets platform (replaces Azure Key Vault)",
+            graph_attr=vault_future_attr
+        ):
+            hashi_vault = Vault(
+                "HashiCorp Vault\n(Future)\nEnterprise Secrets\nAll App Teams"
+            )
 
         # ----------------------------------------------------------------
         # Monitoring (Spoke)
         # ----------------------------------------------------------------
         with Cluster("Monitoring (Spoke)", graph_attr=spoke_monitoring_attr):
-            app_insights = ApplicationInsights("Application Insights\nappi-app-spoke\n(Perf, Logs, Exceptions)")
-
-        # Private DNS Zone
-        private_dns = DNSPrivateZones("Private DNS Zone\nase-plte-fie.\nappserviceenvironment.net")
+            app_insights = ApplicationInsights(
+                "Application Insights\nappi-app-spoke\n(Perf, Logs, Exceptions)"
+            )
 
     # ========================================================================
     # ON-PREMISES (Private Cloud)
     # ========================================================================
     with Cluster("On-Premises (Private Cloud)", graph_attr=onprem_attr):
-        esf = Resourcegroups("ESF\n(Enterprise Security\nFramework)\nUser Roles &\nData Entitlements")
+        esf = Resourcegroups(
+            "ESF\n(Enterprise Security\nFramework)\nUser Roles &\nData Entitlements"
+        )
         onprem_network = Internet("Private Cloud\nNetwork")
 
     # ========================================================================
@@ -240,7 +303,7 @@ with Diagram(
         label="2. Auth Token +\nUser Claims", color="#7B1FA2", style="bold"
     ) >> web_app
 
-    # --- Web App access (blue) ---
+    # --- Web App access via ILB (blue) ---
     user >> Edge(
         label="Access (via ILB\nprivate only)", color="#1565C0", style="bold"
     ) >> web_app
@@ -254,39 +317,44 @@ with Diagram(
         label="4. Returns Roles &\nEntitlements", color="#1B5E20", style="bold"
     ) >> web_app
 
-    # --- ExpressRoute path to ESF (dark green dashed) ---
+    # --- ExpressRoute path to On-Premises (dark green dashed) ---
     er_gateway >> Edge(
         label="ExpressRoute\n(private)", color="#2E7D32", style="dashed"
     ) >> onprem_network
 
     onprem_network >> Edge(color="#2E7D32", style="dashed") >> esf
 
-    # --- VNet Peering (blue dashed) ---
+    # --- VNet Peering: Spoke → Hub (blue dashed) ---
     vnet >> Edge(
         label="VNet Peering", color="#1565C0", style="dashed"
     ) >> er_gateway
 
-    # --- Secret Management (orange) ---
-    managed_id >> Edge(
-        label="Managed Identity\nauth", color="#E65100", style="bold"
-    ) >> pe_kv
-
-    pe_kv >> Edge(color="#E65100") >> key_vault
-
+    # --- DNS Registration: ASE/WebApp → Shared Private DNS Zone in Hub ---
     web_app >> Edge(
-        label="5. Fetch Secrets", color="#E65100"
-    ) >> pe_kv
+        label="DNS record\nregistered here\n(A record → ILB IP)",
+        color="#546E7A", style="dotted"
+    ) >> private_dns
+
+    # --- Secret Management — Current: Web App → Azure Key Vault (orange) ---
+    web_app >> Edge(
+        label="5a. Fetch Secrets\n(Managed Identity)\n[CURRENT]",
+        color="#E65100", style="bold"
+    ) >> key_vault
 
     # --- App Configuration (purple) ---
     web_app >> Edge(
-        label="6. Fetch Config", color="#6A1B9A"
-    ) >> pe_appcfg
+        label="5b. Fetch Config\n(Managed Identity)", color="#6A1B9A"
+    ) >> app_config
 
-    pe_appcfg >> Edge(color="#6A1B9A") >> app_config
+    # --- Secret Management — Future: Web App → HashiCorp Vault (gray dashed) ---
+    web_app >> Edge(
+        label="5c. Fetch Secrets\n[FUTURE — Strategic]",
+        color="#757575", style="dashed"
+    ) >> hashi_vault
 
     # --- Monitoring Flow (red dotted) ---
     web_app >> Edge(
-        label="7. Telemetry &\nApp Logs", color="#B71C1C", style="dotted"
+        label="6. Telemetry &\nApp Logs", color="#B71C1C", style="dotted"
     ) >> app_insights
 
     app_insights >> Edge(
@@ -296,11 +364,6 @@ with Diagram(
     ampls >> Edge(
         label="Enterprise Logs", color="#B71C1C", style="dotted"
     ) >> law
-
-    # --- DNS Resolution ---
-    web_app >> Edge(
-        label="DNS Resolution", color="#546E7A", style="dotted"
-    ) >> private_dns
 
     # --- NSG association ---
     nsg >> Edge(
@@ -339,6 +402,15 @@ if __name__ == "__main__":
     print("   2. Entra ID → Web App (Token + User Claims in Headers)")
     print("   3. Web App → ESF via ExpressRoute (Authorization Request)")
     print("   4. ESF → Web App (Roles & Data Entitlements)")
-    print("   5. Web App → Key Vault (Secrets via Managed Identity)")
-    print("   6. Web App → App Configuration (Config via Managed Identity)")
-    print("   7. Web App → App Insights → AMPLS → LAW (Monitoring)")
+    print("   5a. Web App → Azure Key Vault (Secrets via Managed Identity) [CURRENT]")
+    print("   5b. Web App → App Configuration (Config via Managed Identity)")
+    print("   5c. Web App → HashiCorp Vault (Secrets) [FUTURE — Strategic]")
+    print("   6. Web App → App Insights → AMPLS → LAW (Monitoring)")
+    print("\n🌐 DNS:")
+    print("   - Private DNS Zone in Hub subscription (shared)")
+    print("   - App teams register A records (ASE ILB IP) here")
+    print("   - Spoke has no DNS forwarders — cannot host own DNS zone")
+    print("\n🔒 Key Architecture Decisions:")
+    print("   - ASE ILB mode: web app needs NO private endpoint")
+    print("   - snet-pe is reserved for future private endpoints")
+    print("   - HashiCorp Vault will replace Azure Key Vault (strategic)")
