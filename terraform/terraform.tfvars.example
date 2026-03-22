@@ -1,0 +1,126 @@
+# Example terraform.tfvars - ILB ASE (Internal Load Balancer)
+# This example is for deploying to a hub-spoke topology with ExpressRoute
+# Edit values as needed for your environment
+
+# Azure Provider Configuration
+subscription_id = "00000000-0000-0000-0000-000000000000"  # Replace with your subscription ID
+tenant_id       = "00000000-0000-0000-0000-000000000000"  # Replace with your tenant ID
+client_id       = "00000000-0000-0000-0000-000000000000"  # Replace with your service principal client ID
+client_secret   = "your-client-secret"                    # Replace with your service principal secret
+
+# General Configuration
+project_name = "webapp"
+environment  = "prod"
+location     = "eastus"
+
+# Resource Naming (leave empty to auto-generate)
+resource_group_name              = ""
+vnet_name                        = ""
+ase_subnet_name                  = ""
+private_endpoints_subnet_name    = ""
+ase_name                         = ""
+app_service_plan_name            = ""
+web_app_name                     = ""
+app_insights_name                = ""
+log_analytics_name               = ""
+key_vault_name                   = ""
+storage_account_name             = ""
+
+# Virtual Network Configuration
+vnet_address_space                      = ["10.3.0.0/16"]
+ase_subnet_address_prefix               = "10.3.1.0/24"
+private_endpoints_subnet_address_prefix = "10.3.2.0/24"
+app_gateway_subnet_address_prefix       = "10.3.3.0/24"
+
+# App Service Environment Configuration
+# Use "ILBASEv3" for internal load balancer (recommended for private-only deployments)
+# Use "ASEv3" for external ASE with public endpoints
+ase_kind                    = "ILBASEv3"
+ase_zone_redundant          = true
+ase_availability_zones      = 3
+ase_frontend_scale_factor   = 3
+
+# App Service Plan Configuration
+app_service_plan_sku     = "I1V2"  # Options: I1V2, I2V2, I3V2
+app_service_plan_worker_count = 3
+app_service_plan_is_linux     = true  # true for Linux, false for Windows
+app_service_plan_reserved     = false
+
+# Web App Configuration
+web_app_runtime_stack        = "TOMCAT|10.0"  # For Tomcat. Other examples: "DOTNET|6.0", "NODE|18-lts"
+web_app_java_version         = "17"
+web_app_always_on            = true
+web_app_https_only           = true
+web_app_http2_enabled        = true
+web_app_32bit_worker_process = false
+enable_managed_identity      = true
+enable_vnet_integration      = true
+enable_private_endpoint      = true
+
+# Application Settings
+web_app_app_settings = {
+  "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
+  "JAVA_OPTS"                            = "-Dcom.sun.jndi.ldap.connect.pool=true -Xmx2g -Xms1g"
+  "LOG_LEVEL"                            = "INFO"
+  "ENVIRONMENT"                          = "production"
+}
+
+# Connection Strings (example - customize as needed)
+web_app_connection_strings = {
+  # "DefaultConnection" = {
+  #   value = "Server=tcp:myserver.database.windows.net,1433;Initial Catalog=mydb;Persist Security Info=False;User ID=myuser;Password=mypassword;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+  #   type  = "SQLAzure"
+  # }
+}
+
+# Application Insights & Logging
+enable_app_insights          = true
+app_insights_retention_days  = 30
+enable_log_analytics         = true
+log_analytics_sku            = "PerGB2018"
+log_analytics_retention_days = 30
+
+# Key Vault
+enable_key_vault                 = true
+key_vault_sku                    = "standard"
+key_vault_enable_soft_delete     = true
+key_vault_enable_purge_protection = true
+
+# Storage Account (for backups/diagnostics)
+enable_storage_account      = true
+storage_account_tier        = "Standard"
+storage_account_replication_type = "GRS"
+
+# Private DNS Zone (for ILB ASE)
+enable_private_dns_zone = true
+private_dns_zone_name   = "internal.company.com"
+
+# Auto-Scaling
+enable_auto_scale            = true
+auto_scale_min_count         = 3
+auto_scale_max_count         = 10
+auto_scale_cpu_threshold_up  = 70
+auto_scale_cpu_threshold_down = 30
+
+# Authentication (optional - configure if using Azure AD)
+enable_authentication = false
+# azure_ad_tenant_id    = "00000000-0000-0000-0000-000000000000"
+# azure_ad_client_id    = "00000000-0000-0000-0000-000000000000"
+# azure_ad_client_secret = "your-app-secret"
+
+# Backup Configuration
+enable_backup          = true
+backup_frequency_days  = 1
+backup_retention_days  = 7
+
+# Monitoring & Alerts
+enable_monitoring      = true
+alert_email_addresses  = ["devops@company.com", "infrastructure@company.com"]
+
+# Common Tags
+common_tags = {
+  "Terraform"   = "true"
+  "ManagedBy"   = "Terraform"
+  "CostCenter"  = "IT"
+  "Team"        = "Infrastructure"
+}

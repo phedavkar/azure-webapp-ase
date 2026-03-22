@@ -1,0 +1,527 @@
+digraph "ph-dev Enterprise Architecture
+(Hub-Spoke | ILB ASE | Entra ID | ESF)" {
+	graph [bb="0,0,2074.9,2117",
+		bgcolor="#F5F5F5",
+		compound=true,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=16,
+		label="ph-dev Enterprise Architecture
+(Hub-Spoke | ILB ASE | Entra ID | ESF)",
+		lheight=0.46,
+		lp="1037.5,20.5",
+		lwidth=3.89,
+		nodesep=1.2,
+		pad=1.0,
+		rankdir=LR,
+		ranksep=2.0,
+		splines=ortho
+	];
+	node [fixedsize=true,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		height=1.4,
+		imagescale=true,
+		label="\N",
+		labelloc=b,
+		shape=box,
+		style=rounded,
+		width=1.4
+	];
+	edge [color="#7B8894"];
+	subgraph "cluster_Azure Entra ID (Cloud IDP)" {
+		graph [bb="8,881,485.6,1098",
+			bgcolor="#EDE7F6",
+			fontname="Sans-Serif",
+			fontsize=12,
+			label="Azure Entra ID (Cloud IDP)",
+			labeljust=l,
+			lheight=0.18,
+			lp="88,1087.6",
+			lwidth=2.00,
+			margin=15,
+			pencolor="#4527A0",
+			penwidth=2,
+			rankdir=LR,
+			shape=box,
+			style=rounded
+		];
+		eb1b24f5dd9d44b3b9691be49ef5edaa	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/identity/azure-active-directory.png",
+			label="Entra ID
+Authentication",
+			pos="420.2,979",
+			shape=none];
+		d6a7674ac0a64fca962a8301e147deb1	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/identity/app-registrations.png",
+			label="App Registration
+(user claims in headers)",
+			pos="73.4,979",
+			shape=none];
+		d6a7674ac0a64fca962a8301e147deb1 -> eb1b24f5dd9d44b3b9691be49ef5edaa	[color="#4527A0",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			pos="e,369.88,979 123.46,979 123.46,979 358.36,979 358.36,979",
+			style=dotted];
+	}
+	subgraph "cluster_Hub Subscription (Shared Services)" {
+		graph [bb="1544.7,49,2066.9,852",
+			bgcolor="#E8EAF6",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="Hub Subscription (Shared Services)",
+			labeljust=l,
+			lheight=0.19,
+			lp="1660,841.25",
+			lwidth=2.98,
+			margin=20,
+			pencolor="#3949AB",
+			penwidth=2,
+			rankdir=LR,
+			shape=box,
+			style=rounded
+		];
+		subgraph "cluster_Monitoring (Shared)" {
+			graph [bb="1564.7,69,2046.9,343",
+				bgcolor="#F3E5F5",
+				fontname="Sans-Serif",
+				fontsize=12,
+				label="Monitoring (Shared)",
+				labeljust=l,
+				lheight=0.18,
+				lp="1625.6,332.62",
+				lwidth=1.47,
+				margin=15,
+				pencolor="#6A1B9A",
+				penwidth=2,
+				rankdir=LR,
+				shape=box,
+				style=rounded
+			];
+			"749c5c98ce83476fa283ba1e0e4b6794"	[height=2.7,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/analytics/log-analytics-workspaces.png",
+				label="Log Analytics
+law-shared-enterprise
+(Enterprise-wide)",
+				pos="1981.5,196",
+				shape=none];
+			"70edec8cb9154710967bed934ed74d9f"	[height=3.1,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/analytics/private-link-services.png",
+				label="AMPLS
+ampls-shared-hub
+(Azure Monitor
+Private Link Scope)",
+				pos="1630.1,196",
+				shape=none];
+			"70edec8cb9154710967bed934ed74d9f" -> "749c5c98ce83476fa283ba1e0e4b6794"	[color="#B71C1C",
+				dir=forward,
+				fontcolor="#2D3436",
+				fontname="Sans-Serif",
+				fontsize=13,
+				label="Enterprise Logs",
+				lp="1811.9,202.75",
+				pos="e,1931.2,196 1680.4,196 1680.4,196 1919.7,196 1919.7,196",
+				style=dotted];
+		}
+		"8cfecae489b94b7fa019e2850f45d2f5"	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/expressroute-circuits.png",
+			label="ExpressRoute
+Circuit",
+			pos="1630.1,476",
+			shape=none];
+		"31bd256389e146788aec5040666f5932"	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/virtual-network-gateways.png",
+			label="ExpressRoute
+Gateway",
+			pos="1630.1,728",
+			shape=none];
+	}
+	subgraph "cluster_Spoke Subscription (Application)" {
+		graph [bb="659.1,860,1727.6,2109",
+			bgcolor="#E3F2FD",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="Spoke Subscription (Application)",
+			labeljust=l,
+			lheight=0.19,
+			lp="764.6,2098.2",
+			lwidth=2.71,
+			margin=20,
+			pencolor="#1565C0",
+			penwidth=2,
+			rankdir=LR,
+			shape=box,
+			style=rounded
+		];
+		subgraph "cluster_ASE Subnet: snet-ase (10.3.0.0/26)" {
+			graph [bb="679.1,1028,914.1,1581",
+				bgcolor="#90CAF9",
+				fontname="Sans-Serif",
+				fontsize=11,
+				label="ASE Subnet: snet-ase (10.3.0.0/26)",
+				labeljust=l,
+				lheight=0.17,
+				lp="772.98,1571",
+				lwidth=2.39,
+				margin=12,
+				pencolor="#AEB6BE",
+				rankdir=LR,
+				shape=box,
+				style=dashed
+			];
+			subgraph "cluster_App Service Env: ase-plte-fie
+[ ILBASEv3 | NO PUBLIC ACCESS ]" {
+				graph [bb="691.1,1040,902.1,1549",
+					bgcolor="#BBDEFB",
+					fontname="Sans-Serif",
+					fontsize=12,
+					label="App Service Env: ase-plte-fie
+[ ILBASEv3 | NO PUBLIC ACCESS ]",
+					labeljust=l,
+					lheight=0.35,
+					lp="796.6,1532.2",
+					lwidth=2.71,
+					margin=15,
+					pencolor="#0D47A1",
+					penwidth=2,
+					rankdir=LR,
+					shape=box,
+					style=rounded
+				];
+				"2927dc735b36418ab9c279ebed92c12a"	[height=2.7,
+					image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/compute/app-services.png",
+					label="Web App
+plte-fie-test2
+Java 17 / Tomcat 10.1",
+					pos="796.1,1152",
+					shape=none];
+				fe298825db5f482a9c9310991bbd921e	[height=2.3,
+					image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/identity/managed-identities.png",
+					label="Managed Identity
+(System-assigned)",
+					pos="796.1,1418",
+					shape=none];
+			}
+		}
+		subgraph "cluster_PE Subnet: snet-pe (10.3.1.0/26)" {
+			graph [bb="1169.4,1164,1344.4,1567",
+				bgcolor="#B3E5FC",
+				fontname="Sans-Serif",
+				fontsize=11,
+				label="PE Subnet: snet-pe (10.3.1.0/26)",
+				labeljust=l,
+				lheight=0.17,
+				lp="1256.9,1557",
+				lwidth=2.21,
+				margin=12,
+				pencolor="#AEB6BE",
+				rankdir=LR,
+				shape=box,
+				style=dashed
+			];
+			"4c3fdf84c88e47db9b337edc4f0c23bf"	[height=1.9,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/private-endpoint.png",
+				label="PE: Key Vault",
+				pos="1256.4,1467",
+				shape=none];
+			e5f57900a47f480c8d0553ae4149996b	[height=1.9,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/private-endpoint.png",
+				label="PE: App Config",
+				pos="1256.4,1244",
+				shape=none];
+		}
+		subgraph "cluster_Security & Config (Spoke)" {
+			graph [bb="1553.6,1097,1707.6,1622",
+				bgcolor="#FFF8E1",
+				fontname="Sans-Serif",
+				fontsize=12,
+				label="Security & Config (Spoke)",
+				labeljust=l,
+				lheight=0.18,
+				lp="1630.6,1611.6",
+				lwidth=1.92,
+				margin=15,
+				pencolor="#FF8F00",
+				penwidth=2,
+				rankdir=LR,
+				shape=box,
+				style=rounded
+			];
+			"76b2568ed2d24f0bb6afd32bf59fa2d3"	[height=2.7,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/security/key-vaults.png",
+				label="Key Vault
+kv-app-spoke
+(Secrets, Certs, API Keys)",
+				pos="1630.1,1489",
+				shape=none];
+			"5a8fd95faf744e4dbccb58a4fd26169e"	[height=2.7,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+generic/blank/blank.png",
+				label="App Configuration
+appconf-app-spoke
+(Env Vars, Feature Flags)",
+				pos="1630.1,1209",
+				shape=none];
+		}
+		subgraph "cluster_Monitoring (Spoke)" {
+			graph [bb="1191,880,1321.8,1125",
+				bgcolor="#FCE4EC",
+				fontname="Sans-Serif",
+				fontsize=12,
+				label="Monitoring (Spoke)",
+				labeljust=l,
+				lheight=0.18,
+				lp="1249.6,1114.6",
+				lwidth=1.41,
+				margin=15,
+				pencolor="#AD1457",
+				penwidth=2,
+				rankdir=LR,
+				shape=box,
+				style=rounded
+			];
+			b3d796081e7141efa995dc68cf4c2989	[height=2.7,
+				image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/devops/application-insights.png",
+				label="Application Insights
+appi-app-spoke
+(Perf, Logs, Exceptions)",
+				pos="1256.4,992",
+				shape=none];
+		}
+		c6d0e34f9c3945f2858401f85527f420	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/virtual-networks.png",
+			label="vnet-app-spoke
+10.3.0.0/24",
+			pos="1256.4,1985",
+			shape=none];
+		"5da439ac242e47889fe859572fa2c055"	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/network-security-groups-classic.png",
+			label="NSG
+(Deny public inbound)",
+			pos="796.1,1985",
+			shape=none];
+		"5da439ac242e47889fe859572fa2c055" -> c6d0e34f9c3945f2858401f85527f420	[color="#546E7A",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="Applied to
+subnets",
+			lp="1035.7,1998.5",
+			pos="e,1206.3,1985 846.23,1985 846.23,1985 1194.8,1985 1194.8,1985",
+			style=dotted];
+		"2927dc735b36418ab9c279ebed92c12a" -> "4c3fdf84c88e47db9b337edc4f0c23bf"	[color="#E65100",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="5. Fetch Secrets",
+			lp="1035.7,1263.8",
+			pos="e,1206.1,1432.7 846.25,1212.4 929.19,1212.4 1085.9,1212.4 1085.9,1212.4 1085.9,1212.4 1085.9,1432.7 1085.9,1432.7 1085.9,1432.7 \
+1194.6,1432.7 1194.6,1432.7"];
+		"2927dc735b36418ab9c279ebed92c12a" -> e5f57900a47f480c8d0553ae4149996b	[color="#6A1B9A",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="6. Fetch Config",
+			lp="1035.7,1158.8",
+			pos="e,1206.3,1194 846.23,1194 846.23,1194 1194.8,1194 1194.8,1194"];
+		"2927dc735b36418ab9c279ebed92c12a" -> b3d796081e7141efa995dc68cf4c2989	[color="#B71C1C",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="7. Telemetry &
+App Logs",
+			lp="1035.7,1026.5",
+			pos="e,1206.3,1072 846.23,1072 846.23,1072 1194.8,1072 1194.8,1072",
+			style=dotted];
+		"8b7e14bfb6d34559bb356295065b6bc7"	[height=2.7,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/network/dns-private-zones.png",
+			label="Private DNS Zone
+ase-plte-fie.
+appserviceenvironment.net",
+			pos="1256.4,1719",
+			shape=none];
+		"2927dc735b36418ab9c279ebed92c12a" -> "8b7e14bfb6d34559bb356295065b6bc7"	[color="#546E7A",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="DNS Resolution",
+			lp="1035.7,1368.8",
+			pos="e,1206.1,1719 846.13,1230.8 896.21,1230.8 965.9,1230.8 965.9,1230.8 965.9,1230.8 965.9,1719 965.9,1719 965.9,1719 1194.6,1719 1194.6,\
+1719",
+			style=dotted];
+		fe298825db5f482a9c9310991bbd921e -> "4c3fdf84c88e47db9b337edc4f0c23bf"	[color="#E65100",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="Managed Identity
+auth",
+			lp="1035.7,1480.5",
+			pos="e,1206.3,1466.7 846.23,1466.7 846.23,1466.7 1194.8,1466.7 1194.8,1466.7",
+			style=bold];
+		"4c3fdf84c88e47db9b337edc4f0c23bf" -> "76b2568ed2d24f0bb6afd32bf59fa2d3"	[color="#E65100",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			pos="e,1579.8,1467 1306.4,1467 1306.4,1467 1568.3,1467 1568.3,1467"];
+		e5f57900a47f480c8d0553ae4149996b -> "5a8fd95faf744e4dbccb58a4fd26169e"	[color="#6A1B9A",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			pos="e,1579.8,1240.9 1306.4,1240.9 1306.4,1240.9 1568.3,1240.9 1568.3,1240.9"];
+	}
+	subgraph "cluster_On-Premises (Private Cloud)" {
+		graph [bb="725.7,537,1326.8,851",
+			bgcolor="#E8F5E9",
+			fontname="Sans-Serif",
+			fontsize=13,
+			label="On-Premises (Private Cloud)",
+			labeljust=l,
+			lheight=0.19,
+			lp="819.2,840.25",
+			lwidth=2.38,
+			margin=20,
+			pencolor="#2E7D32",
+			penwidth=2,
+			rankdir=LR,
+			shape=box,
+			style=rounded
+		];
+		"874b98b618e74d05b52d61acab576d04"	[height=3.5,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+azure/general/resourcegroups.png",
+			label="ESF
+(Enterprise Security
+Framework)
+User Roles &
+Data Entitlements",
+			pos="1256.4,683",
+			shape=none];
+		fe9df1fdb2d84617a44757799f9fe8de	[height=2.3,
+			image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+onprem/network/internet.png",
+			label="Private Cloud
+Network",
+			pos="796.1,652",
+			shape=none];
+		fe9df1fdb2d84617a44757799f9fe8de -> "874b98b618e74d05b52d61acab576d04"	[color="#2E7D32",
+			dir=forward,
+			fontcolor="#2D3436",
+			fontname="Sans-Serif",
+			fontsize=13,
+			pos="e,1206.3,652 846.23,652 846.23,652 1194.8,652 1194.8,652",
+			style=dashed];
+	}
+	"946089339cd846d3aa10fbdb5827c5a0"	[height=2.3,
+		image="/Users/prasanna/Documents/source/project-webapp/terraform/Architecture_Diagrams_Python_AI/venv/lib/python3.13/site-packages/resources/\
+generic/device/mobile.png",
+		label="User
+(Internal / VPN)",
+		pos="73.4,1233",
+		shape=none];
+	"946089339cd846d3aa10fbdb5827c5a0" -> eb1b24f5dd9d44b3b9691be49ef5edaa	[color="#7B1FA2",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="1. Login Request",
+		lp="246.8,1127.8",
+		pos="e,419.9,1061.8 123.78,1183.2 219.89,1183.2 419.9,1183.2 419.9,1183.2 419.9,1183.2 419.9,1073.3 419.9,1073.3",
+		style=bold];
+	"946089339cd846d3aa10fbdb5827c5a0" -> "2927dc735b36418ab9c279ebed92c12a"	[color="#1565C0",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="Access (via ILB
+private only)",
+		lp="420.2,1247.5",
+		pos="e,745.71,1216.2 123.65,1216.2 123.65,1216.2 734.19,1216.2 734.19,1216.2",
+		style=bold];
+	eb1b24f5dd9d44b3b9691be49ef5edaa -> "2927dc735b36418ab9c279ebed92c12a"	[color="#7B1FA2",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="2. Auth Token +
+User Claims",
+		lp="588.35,1082.5",
+		pos="e,745.79,1058.3 470.51,1058.3 470.51,1058.3 734.28,1058.3 734.28,1058.3",
+		style=bold];
+	"31bd256389e146788aec5040666f5932" -> fe9df1fdb2d84617a44757799f9fe8de	[color="#2E7D32",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="ExpressRoute
+(private)",
+		lp="1256.4,457.5",
+		pos="e,820.9,734.54 1629.9,810.55 1629.9,833.76 1629.9,852.8 1629.9,852.8 1629.9,852.8 820.9,852.8 820.9,852.8 820.9,852.8 820.9,746.06 \
+820.9,746.06",
+		style=dashed];
+	c6d0e34f9c3945f2858401f85527f420 -> "31bd256389e146788aec5040666f5932"	[color="#1565C0",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="VNet Peering",
+		lp="1456.5,932.75",
+		pos="e,1579.9,727.1 1306.5,1985 1374.9,1985 1488.9,1985 1488.9,1985 1488.9,1985 1488.9,727.1 1488.9,727.1 1488.9,727.1 1568.4,727.1 1568.4,\
+727.1",
+		style=dashed];
+	"2927dc735b36418ab9c279ebed92c12a" -> "874b98b618e74d05b52d61acab576d04"	[color="#1B5E20",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="3. User headers
+(auth request)",
+		lp="1035.7,885.5",
+		pos="e,1206.2,759.53 770.9,1055 770.9,938.77 770.9,759.53 770.9,759.53 770.9,759.53 1194.7,759.53 1194.7,759.53",
+		style=bold];
+	b3d796081e7141efa995dc68cf4c2989 -> "70edec8cb9154710967bed934ed74d9f"	[color="#B71C1C",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="Private Link
+(AMPLS)",
+		lp="1456.5,806.5",
+		pos="e,1579.7,196 1306.7,992 1347.3,992 1397.9,992 1397.9,992 1397.9,992 1397.9,196 1397.9,196 1397.9,196 1568.2,196 1568.2,196",
+		style=dotted];
+	"874b98b618e74d05b52d61acab576d04" -> "2927dc735b36418ab9c279ebed92c12a"	[color="#1B5E20",
+		dir=forward,
+		fontcolor="#2D3436",
+		fontname="Sans-Serif",
+		fontsize=13,
+		label="4. Returns Roles &
+Entitlements",
+		lp="1035.7,764.5",
+		pos="e,795.9,1054.9 1206.2,784.27 1086.9,784.27 795.9,784.27 795.9,784.27 795.9,784.27 795.9,1043.4 795.9,1043.4",
+		style=bold];
+}
