@@ -1,0 +1,42 @@
+// ============================================================
+// RUNBOOK: 03 - Slow Requests (P95 Latency Investigation)
+// Use: Performance complaints, SLA breach investigation.
+//      Threshold: > 2000ms = slow, > 5000ms = critical.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── 3a: Individual slow requests ──────────────────────────────
+requests
+| where timestamp > ago(1h)
+| where duration > 2000                         // threshold in ms — adjust as needed
+| extend
+    requestUrl  = tostring(url),
+    requestName = tostring(name),
+    appVersion  = tostring(customDimensions["appVersion"]),
+    env         = tostring(customDimensions["environment"])
+| project
+    timestamp,
+    requestName,
+    requestUrl,
+    duration,
+    resultCode,
+    appVersion,
+    env,
+    operation_Id
+| order by duration desc
+| take 50;
+
+// ── 3b: Latency percentiles by endpoint (last 6 hours) ────────
+requests
+| where timestamp > ago(6h)
+| summarize
+    requestCount = count(),
+    avgMs        = round(avg(duration), 1),
+    p50Ms        = round(percentile(duration, 50), 1),
+    p90Ms        = round(percentile(duration, 90), 1),
+    p95Ms        = round(percentile(duration, 95), 1),
+    p99Ms        = round(percentile(duration, 99), 1),
+    failureCount = countif(success == false)
+  by requestName = name
+| extend failureRate = round(100.0 * failureCount / requestCount, 2)
+| order by p95Ms desc

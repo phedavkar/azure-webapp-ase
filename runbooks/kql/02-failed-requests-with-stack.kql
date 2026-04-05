@@ -1,0 +1,44 @@
+// ============================================================
+// RUNBOOK: 02 - Failed HTTP Requests with Stack Trace
+// Use: Investigate specific HTTP failures (4xx/5xx).
+//      Join requests with exceptions to get full stack.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+requests
+| where timestamp > ago(1h)
+| where success == false
+| extend
+    httpStatus  = tostring(resultCode),
+    requestUrl  = tostring(url),
+    requestName = tostring(name),
+    clientIp    = tostring(client_IP),
+    appVersion  = tostring(customDimensions["appVersion"])
+| join kind=leftouter (
+    exceptions
+    | where timestamp > ago(1h)
+    | project
+        operation_Id,
+        exceptionType    = tostring(type),
+        exceptionMessage = tostring(outerMessage),
+        exceptionStack   = tostring(details[0].rawStack)
+) on operation_Id
+| project
+    timestamp,
+    httpStatus,
+    requestName,
+    requestUrl,
+    duration,                               // milliseconds
+    clientIp,
+    appVersion,
+    exceptionType,
+    exceptionMessage,
+    exceptionStack,
+    operation_Id
+| order by timestamp desc
+| take 50
+
+// ── Change 'ago(1h)' to 'ago(4h)' for wider window ──────────
+// ── Change 'resultCode' filter below for specific status codes:
+//    | where resultCode == "500"
+//    | where resultCode startswith "4"

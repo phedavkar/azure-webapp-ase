@@ -1,0 +1,64 @@
+// ============================================================
+// RUNBOOK: 05 - ESF Authorization Failures
+// Use: User authenticated (Entra OK) but gets 403 from ESF.
+//      ESF runs on-premises; called via ExpressRoute.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── 5a: ESF outbound dependency calls ─────────────────────────
+dependencies
+| where timestamp > ago(1h)
+| where name has_any ("ESF", "esf", "authorization", "authz")
+    or target has_any ("ESF", "esf")
+| extend
+    callDuration = duration,
+    callSuccess  = success,
+    responseCode = tostring(resultCode),
+    env          = tostring(customDimensions["environment"])
+| project
+    timestamp,
+    name,
+    target,
+    callDuration,
+    callSuccess,
+    responseCode,
+    env,
+    data,                                   // ESF endpoint/payload hint
+    operation_Id
+| order by timestamp desc
+| take 50;
+
+// ── 5b: ESF-related error traces ──────────────────────────────
+traces
+| where timestamp > ago(1h)
+| where severityLevel >= 2
+| where message has_any (
+    "ESF", "authorization", "authz",
+    "permission", "role", "entitlement",
+    "access denied"
+  )
+| extend
+    userId    = tostring(customDimensions["userId"]),
+    env       = tostring(customDimensions["environment"])
+| project
+    timestamp,
+    severityLevel,
+    message,
+    userId,
+    env,
+    operation_Id
+| order by timestamp desc
+| take 100;
+
+// ── 5c: ESF latency over time (Express Route health) ──────────
+dependencies
+| where timestamp > ago(6h)
+| where name has_any ("ESF", "esf", "authz")
+| summarize
+    callCount   = count(),
+    failedCount = countif(success == false),
+    avgMs       = round(avg(duration), 1),
+    p95Ms       = round(percentile(duration, 95), 1)
+  by bin(timestamp, 5m)
+| extend failureRate = round(100.0 * failedCount / callCount, 2)
+| order by timestamp desc

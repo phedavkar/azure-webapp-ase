@@ -1,0 +1,51 @@
+// ============================================================
+// RUNBOOK: 04 - Entra ID Authentication Failures
+// Use: Users cannot log in. Token validation errors.
+//      Auth header missing / invalid claims.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── 4a: Auth-related traces (WARN + ERROR) ────────────────────
+traces
+| where timestamp > ago(1h)
+| where severityLevel >= 2                      // 2=Warning, 3=Error
+| where message has_any (
+    "authentication", "401", "403",
+    "token", "bearer", "Entra",
+    "claim", "principal", "identity",
+    "unauthorized", "forbidden"
+  )
+| extend
+    env       = tostring(customDimensions["environment"]),
+    userId    = tostring(customDimensions["userId"]),
+    requestId = tostring(customDimensions["RequestId"])
+| project
+    timestamp,
+    severityLevel,
+    message,
+    env,
+    userId,
+    requestId,
+    operation_Id
+| order by timestamp desc
+| take 100;
+
+// ── 4b: 401 / 403 HTTP responses ──────────────────────────────
+requests
+| where timestamp > ago(1h)
+| where resultCode in ("401", "403")
+| extend
+    requestUrl = tostring(url),
+    clientIp   = tostring(client_IP),
+    userId     = tostring(customDimensions["userId"])
+| project
+    timestamp,
+    resultCode,
+    name,
+    requestUrl,
+    clientIp,
+    userId,
+    duration,
+    operation_Id
+| order by timestamp desc
+| take 100

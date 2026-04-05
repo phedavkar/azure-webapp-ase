@@ -1,0 +1,64 @@
+// ============================================================
+// RUNBOOK: 08 - Application Performance Overview (24h)
+// Use: Daily health check, SLA report, sprint review.
+//      Run at start-of-day or before release.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── 8a: Hourly request volume + failure rate ──────────────────
+requests
+| where timestamp > ago(24h)
+| summarize
+    totalRequests  = count(),
+    failedRequests = countif(success == false),
+    avgMs          = round(avg(duration), 1),
+    p95Ms          = round(percentile(duration, 95), 1)
+  by bin(timestamp, 1h)
+| extend failureRate = round(100.0 * failedRequests / totalRequests, 2)
+| order by timestamp desc;
+
+// ── 8b: Top 10 slowest endpoints ──────────────────────────────
+requests
+| where timestamp > ago(24h)
+| summarize
+    callCount    = count(),
+    avgMs        = round(avg(duration), 1),
+    p95Ms        = round(percentile(duration, 95), 1),
+    failureCount = countif(success == false)
+  by name
+| extend failureRate = round(100.0 * failureCount / callCount, 2)
+| order by p95Ms desc
+| take 10;
+
+// ── 8c: Exception frequency by type ───────────────────────────
+exceptions
+| where timestamp > ago(24h)
+| summarize
+    count      = count(),
+    firstSeen  = min(timestamp),
+    lastSeen   = max(timestamp),
+    affectedOps = dcount(operation_Id)
+  by type, outerMessage
+| order by count desc
+| take 20;
+
+// ── 8d: Dependency health summary ─────────────────────────────
+dependencies
+| where timestamp > ago(24h)
+| summarize
+    callCount   = count(),
+    failedCount = countif(success == false),
+    avgMs       = round(avg(duration), 1),
+    p95Ms       = round(percentile(duration, 95), 1)
+  by target, type
+| extend failureRate = round(100.0 * failedCount / callCount, 2)
+| order by failureRate desc, callCount desc;
+
+// ── 8e: Live metrics snapshot (last 15 min) ───────────────────
+requests
+| where timestamp > ago(15m)
+| summarize
+    requestsPerMin = count() / 15,
+    activeUsers    = dcount(session_Id),
+    errorRate      = round(100.0 * countif(success == false) / count(), 2),
+    avgMs          = round(avg(duration), 1)

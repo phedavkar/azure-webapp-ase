@@ -1,0 +1,67 @@
+// ============================================================
+// RUNBOOK: 09 - Shared LAW Queries (Use Sparingly)
+// Use: Only when App Insights is insufficient.
+//      LAW is SHARED — expensive queries impact other teams.
+// Target: Shared LAW (law-shared-hub) — Hub Subscription
+// IMPORTANT: Always scope to your app with _ResourceId filter.
+// ============================================================
+
+// ── 9a: App HTTP errors from AppServiceHTTPLogs ───────────────
+// Run in: LAW workspace of law-shared-hub
+AppServiceHTTPLogs
+| where TimeGenerated > ago(1h)
+| where _ResourceId has "plte-fie-test2"           // ALWAYS scope to your app
+| where ScStatus >= 500                             // server errors only
+| project
+    TimeGenerated,
+    ScStatus,
+    CsMethod,
+    CsUriStem,
+    TimeTaken,
+    CsUsername,
+    CIp
+| order by TimeGenerated desc
+| take 100;
+
+// ── 9b: Application WARN/ERROR logs ───────────────────────────
+AppServiceAppLogs
+| where TimeGenerated > ago(1h)
+| where _ResourceId has "plte-fie-test2"           // ALWAYS scope to your app
+| where Level in ("Error", "Warning")              // never query "Information"
+| project
+    TimeGenerated,
+    Level,
+    Message,
+    ExceptionDetails,
+    Host
+| order by TimeGenerated desc
+| take 100;
+
+// ── 9c: Authentication audit logs ─────────────────────────────
+AppServiceAuditLogs
+| where TimeGenerated > ago(24h)
+| where _ResourceId has "plte-fie-test2"           // ALWAYS scope to your app
+| where Category == "AppServiceAuditLogs"
+| project
+    TimeGenerated,
+    Category,
+    OperationName,
+    ResultType,
+    User,
+    CIp
+| order by TimeGenerated desc
+| take 50;
+
+// ── ⚠️ SHARED LAW RULES ──────────────────────────────────────
+// ✅ DO:
+//   - Always filter _ResourceId to YOUR app
+//   - Always add TimeGenerated time range (ago(1h) max for ad-hoc)
+//   - Use 'take' or 'limit' to cap result rows
+//   - Prefer App Insights queries (01-08) for day-to-day debugging
+//
+// ❌ DO NOT:
+//   - Query without _ResourceId filter (scans all spoke data)
+//   - Query without time range (full table scan)
+//   - Run ago(7d) or longer ranges (use App Insights for historical)
+//   - Query AppServiceConsoleLogs (excluded from LAW by design)
+//   - Schedule high-frequency queries (use alerts instead)

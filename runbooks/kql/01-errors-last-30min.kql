@@ -1,0 +1,27 @@
+// ============================================================
+// RUNBOOK: 01 - Last 100 Exceptions (last 30 minutes)
+// Use: First query when an alert fires or a user reports an error.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+exceptions
+| where timestamp > ago(30m)
+| where severityLevel >= 3                  // 3=Error, 4=Critical  (skip Verbose/Info/Warning)
+| extend
+    errorType       = tostring(type),
+    errorMessage    = tostring(outerMessage),
+    env             = tostring(customDimensions["environment"]),
+    appVersion      = tostring(customDimensions["appVersion"]),
+    userId          = tostring(customDimensions["userId"]),
+    operationId     = operation_Id
+| project
+    timestamp,
+    errorType,
+    errorMessage,
+    appVersion,
+    env,
+    userId,
+    operationId,
+    stack = tostring(details[0].rawStack)
+| order by timestamp desc
+| take 100

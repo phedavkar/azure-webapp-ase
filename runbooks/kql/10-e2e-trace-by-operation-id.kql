@@ -1,0 +1,56 @@
+// ============================================================
+// RUNBOOK: 10 - End-to-End Request Trace (Operation ID)
+// Use: A specific user reported a failing request.
+//      Reconstruct full timeline: request → ESF → DB → KV.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── Step 1: Find the operation ID from a user complaint ───────
+// Replace <user-email> and time window with actuals
+requests
+| where timestamp > ago(2h)
+| where success == false
+| where tostring(customDimensions["userId"]) has "<user-email>"
+| project timestamp, operation_Id, name, resultCode, duration
+| order by timestamp desc
+| take 10;
+
+// ── Step 2: Full E2E trace for a specific operation_Id ────────
+// Replace <operation_id> with value from Step 1
+let opId = "<operation_id>";              // ← paste operation_Id here
+union
+    (requests
+        | where operation_Id == opId
+        | extend stepType = "request",    stepDetail = name,   ms = duration),
+    (dependencies
+        | where operation_Id == opId
+        | extend stepType = "dependency", stepDetail = strcat(type, " → ", name), ms = duration),
+    (traces
+        | where operation_Id == opId
+        | extend stepType = "trace",      stepDetail = message, ms = real(0)),
+    (exceptions
+        | where operation_Id == opId
+        | extend stepType = "exception",  stepDetail = strcat(type, ": ", outerMessage), ms = real(0))
+| project
+    timestamp,
+    stepType,
+    stepDetail,
+    ms,
+    success,
+    resultCode,
+    customDimensions
+| order by timestamp asc;
+
+// ── Step 3: Waterfall — see which dependency was slowest ──────
+let opId = "<operation_id>";              // ← same operation_Id
+dependencies
+| where operation_Id == opId
+| project
+    timestamp,
+    dependencyType = type,
+    name,
+    target,
+    duration,
+    success,
+    resultCode
+| order by timestamp asc

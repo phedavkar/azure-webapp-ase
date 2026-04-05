@@ -1,0 +1,73 @@
+// ============================================================
+// RUNBOOK: 06 - Oracle DB Connectivity Issues
+// Use: App returns DB errors. Queries timing out.
+//      Oracle on-premises via ExpressRoute.
+// Target: App Insights (appi-app-spoke)
+// ============================================================
+
+// ── 6a: Oracle dependency call failures ───────────────────────
+dependencies
+| where timestamp > ago(1h)
+| where type =~ "Oracle"
+    or name has_any ("oracle", "jdbc", "ORA-", "db")
+    or target has_any ("oracle", "1521", "jdbc")
+| extend
+    callDuration = duration,
+    callSuccess  = success,
+    errorCode    = tostring(resultCode),
+    sqlStatement = tostring(data)           // sanitized SQL (no bind values)
+| project
+    timestamp,
+    name,
+    target,
+    callDuration,
+    callSuccess,
+    errorCode,
+    sqlStatement,
+    operation_Id
+| order by timestamp desc
+| take 50;
+
+// ── 6b: Oracle ORA- error codes in traces ────────────────────
+traces
+| where timestamp > ago(1h)
+| where severityLevel >= 2
+| where message matches regex @"ORA-\d+"
+    or message has_any (
+        "ORA-", "TNS:", "connection pool",
+        "DataSource", "JDBC", "SQLException",
+        "connection timed out", "no more data to read from socket"
+    )
+| extend
+    env    = tostring(customDimensions["environment"]),
+    thread = tostring(customDimensions["threadName"])
+| project
+    timestamp,
+    severityLevel,
+    message,
+    env,
+    thread,
+    operation_Id
+| order by timestamp desc
+| take 100;
+
+// ── 6c: DB call duration trend (connection pool health) ───────
+dependencies
+| where timestamp > ago(6h)
+| where type =~ "Oracle"
+    or target has_any ("oracle", "1521")
+| summarize
+    callCount   = count(),
+    failedCount = countif(success == false),
+    avgMs       = round(avg(duration), 1),
+    p95Ms       = round(percentile(duration, 95), 1),
+    maxMs       = round(max(duration), 1)
+  by bin(timestamp, 5m)
+| extend failureRate = round(100.0 * failedCount / callCount, 2)
+| order by timestamp desc
+
+// ── NOTE ──────────────────────────────────────────────────────
+// ORA-12170 = TNS: Connect timeout       → ExpressRoute issue
+// ORA-01017 = Invalid username/password  → Credential rotation needed
+// ORA-00054 = Resource busy              → Lock contention
+// ORA-04031 = Shared pool memory         → DB-side DBA issue
